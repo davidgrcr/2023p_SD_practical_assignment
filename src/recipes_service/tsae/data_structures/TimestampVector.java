@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
@@ -59,7 +60,8 @@ public class TimestampVector implements Serializable{
 			timestampVector.put(id, new Timestamp(id, Timestamp.NULL_TIMESTAMP_SEQ_NUMBER));
 		}
 	}
-
+	
+	
 	/**
 	 * Updates the timestamp vector with a new timestamp. 
 	 * @param timestamp
@@ -73,7 +75,14 @@ public class TimestampVector implements Serializable{
 	 * merge in another vector, taking the elementwise maximum
 	 * @param tsVector (a timestamp vector)
 	 */
-	public void updateMax(TimestampVector tsVector){
+	public synchronized void updateMax(TimestampVector tsVector){
+		for (Iterator<String> it = tsVector.timestampVector.keySet().iterator(); it.hasNext(); ){
+			String k = it.next();
+			Timestamp t1 = tsVector.timestampVector.get(k);
+			Timestamp t2 = timestampVector.get(k);
+			updateTimestamp(t1.compare(t2) > 0 ? t1 : t2);
+		}
+		
 	}
 	
 	/**
@@ -92,7 +101,13 @@ public class TimestampVector implements Serializable{
 	 * After merging, local node will have the smallest timestamp for each node.
 	 *  @param tsVector (timestamp vector)
 	 */
-	public void mergeMin(TimestampVector tsVector){
+	public synchronized void mergeMin(TimestampVector tsVector){
+		for (Iterator<String> it = tsVector.timestampVector.keySet().iterator(); it.hasNext(); ){
+			String k = it.next();
+			Timestamp t1 = tsVector.timestampVector.get(k);
+			Timestamp t2 = timestampVector.get(k);
+			updateTimestamp(t1.compare(t2) < 0 ? t1 : t2);
+		}
 	}
 	
 	/**
@@ -107,6 +122,7 @@ public class TimestampVector implements Serializable{
 	    }
 	    
 	    return clonedTimestampVector;
+		// return new TimestampVector(this.timestampVector);
 	}
 	
 	/**

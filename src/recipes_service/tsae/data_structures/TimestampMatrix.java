@@ -21,10 +21,13 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
+
+
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
@@ -51,16 +54,19 @@ public class TimestampMatrix implements Serializable{
 	 * @return the timestamp vector of node in this timestamp matrix
 	 */
 	TimestampVector getTimestampVector(String node){
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+		return timestampMatrix.get(node);
 	}
 	
 	/**
 	 * Merges two timestamp matrix taking the elementwise maximum
 	 * @param tsMatrix
 	 */
-	public void updateMax(TimestampMatrix tsMatrix){
+	 
+	public synchronized void updateMax(TimestampMatrix tsMatrix){
+		for (Iterator<String> it = timestampMatrix.keySet().iterator(); it.hasNext(); ){
+			String node = it.next();
+			timestampMatrix.get(node).updateMax(tsMatrix.getTimestampVector(node));
+		}
 	}
 	
 	/**
@@ -69,6 +75,7 @@ public class TimestampMatrix implements Serializable{
 	 * @param tsVector
 	 */
 	public void update(String node, TimestampVector tsVector){
+		timestampMatrix.put(node, tsVector);
 	}
 	
 	/**
@@ -77,18 +84,32 @@ public class TimestampMatrix implements Serializable{
 	 * the timestamp known by all participants
 	 */
 	public TimestampVector minTimestampVector(){
-
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+		List<String> participants = new ArrayList<String>(timestampMatrix.keySet());
+		TimestampVector min = null;
+		
+		for (Iterator<String> it = timestampMatrix.keySet().iterator(); it.hasNext(); ){
+			String node = it.next();
+			if (min == null) {
+				min = timestampMatrix.get(node).clone();
+			} else {
+				min.mergeMin(timestampMatrix.get(node));
+			}
+		}
+		return min;
+		 
 	}
 	
 	/**
 	 * clone
 	 */
 	public TimestampMatrix clone(){
-
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+		List<String> participants = new ArrayList<String>(timestampMatrix.keySet());
+		TimestampMatrix matrix = new TimestampMatrix(participants);
+		for (Iterator<String> it = timestampMatrix.keySet().iterator(); it.hasNext(); ){
+			String participant = it.next();
+			matrix.update(participant, timestampMatrix.get(participant));
+		}
+		return matrix;		  
 	}
 	
 	/**
@@ -96,9 +117,15 @@ public class TimestampMatrix implements Serializable{
 	 */
 	@Override
 	public boolean equals(Object obj) {
-
-		// return generated automatically. Remove it when implementing your solution 
-		return false;
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		TimestampMatrix other = (TimestampMatrix) obj;
+		return other.timestampMatrix.equals(timestampMatrix); 
+		
 	}
 
 	

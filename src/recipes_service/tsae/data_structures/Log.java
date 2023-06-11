@@ -99,12 +99,12 @@ public class Log implements Serializable{
 	 * @param sum
 	 * @return list of operations
 	 */
-	public List<Operation> listNewer(TimestampVector sum){
+	public synchronized List<Operation> listNewer(TimestampVector sum){
 
 		List<Operation> newerOperations = new Vector<Operation>();
 		
-		for (String hostId : log.keySet()) {
-	        List<Operation> ops = log.get(hostId);
+		for (String hostId : this.log.keySet()) {
+	        List<Operation> ops = this.log.get(hostId);
 	        Timestamp localLastTimestamp = sum.getLast(hostId);
 
 	        for (Operation op : ops) {
@@ -127,8 +127,19 @@ public class Log implements Serializable{
 	 * ackSummary. 
 	 * @param ack: ackSummary.
 	 */
-	public void purgeLog(TimestampMatrix ack){
+	public synchronized void purgeLog(TimestampMatrix ack){
+		List<String> participants = new Vector<String>(this.log.keySet());
+		TimestampVector min = ack.minTimestampVector();
+		for (Iterator<String> it = participants.iterator(); it.hasNext(); ){
+			String node = it.next();
+			for (Iterator<Operation> opIt = log.get(node).iterator(); opIt.hasNext();) {
+				if (min.getLast(node) != null && opIt.next().getTimestamp().compare(min.getLast(node)) <= 0) {
+					opIt.remove();
+				}
+			}
+		}
 	}
+	 
 
 	/**
 	 * equals
